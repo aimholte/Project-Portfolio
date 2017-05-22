@@ -1,0 +1,21 @@
+#HR Analytics Project: Under what circumstances will employees leave a company? What factors predict this?
+
+```{r}
+HR_data <- data.frame(HR_comma_sep)
+unique(HR_data$sales)
+unique(HR_data$salary)
+```
+```{r}
+hist(HR_data$satisfaction_level)
+hist(HR_data$average_montly_hours)
+hist(HR_data$time_spend_company)
+```
+```{r}
+plot(HR_data$average_montly_hours, HR_data$satisfaction_level)
+plot(HR_data$time_spend_company, HR_data$average_montly_hours)
+correlations <- list(cor(HR_data$satisfaction_level, HR_data$left), cor(HR_data$average_montly_hours, HR_data$left), 
+                     cor(HR_data$promotion_last_5years, HR_data$left))
+correlations
+```
+#Training and Testing Data
+
