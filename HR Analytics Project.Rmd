@@ -11,11 +11,48 @@ hist(HR_data$average_montly_hours)
 hist(HR_data$time_spend_company)
 ```
 ```{r}
-plot(HR_data$average_montly_hours, HR_data$satisfaction_level)
+plot(sample(HR_data$average_montly_hours, 1000, replace = TRUE),
+     sample(HR_data$satisfaction_level, 1000, replace = TRUE))
 plot(HR_data$time_spend_company, HR_data$average_montly_hours)
-correlations <- list(cor(HR_data$satisfaction_level, HR_data$left), cor(HR_data$average_montly_hours, HR_data$left), 
-                     cor(HR_data$promotion_last_5years, HR_data$left))
+boxplots <- list(boxplot(HR_data$satisfaction_level ~ HR_data$left),
+                 boxplot(HR_data$average_montly_hours ~ HR_data$left),
+                 boxplot(HR_data$last_evaluation ~ HR_data$left), 
+                 boxplot(HR_data$time_spend_company ~ HR_data$left),
+                 boxplot(HR_data$number_project ~ HR_data$left))
+boxplots
+```
+
+```{r}
+library(ggplot2)
+ggplots <- list(qplot(time_spend_company, satisfaction_level, data = HR_data, color = left, size = salary),
+                qplot(average_montly_hours, satisfaction_level, data = HR_data, color = left),
+                qplot(number_project, average_montly_hours, data = HR_data, color = left),
+                qplot(time_spend_company, satisfaction_level, data = HR_data, color = sales),
+                 qplot(time_spend_company, satisfaction_level, data = HR_data,
+                       color = salary), qplot(number_project, average_montly_hours,
+                                              data = HR_data, color = salary))
+print(ggplots)
+```
+
+```{r}
+correlations <- list(cor(HR_data$satisfaction_level, HR_data$left), cor(HR_data$average_montly_hours, HR_data$left), cor(HR_data$promotion_last_5years, HR_data$left))
+summary(HR_data)
 correlations
 ```
+
+
 #Training and Testing Data
+```{r}
+library(bestglm)
+glm.mod <- glm(left ~. + poly(satisfaction_level, 5) + poly(average_montly_hours, 5) + poly(number_project, 5) + poly(time_spend_company, 5) + number_project*average_montly_hours + time_spend_company*satisfaction_level,family = "binomial", data = HR_data)
+summary(glm.mod)
+```
+
+```{r}
+satisfaction.squared <- (HR_data$satisfaction_level)^2
+satisfaction.cubed <- (HR_data$satisfaction_level)^3
+satisfaction.4 <- (HR_data$satisfaction_level)^4
+HR_data <- data.frame(HR_data, satisfaction.squared)
+View(HR_data)
+```
 
