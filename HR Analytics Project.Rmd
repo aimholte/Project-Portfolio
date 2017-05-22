@@ -1,6 +1,8 @@
 #HR Analytics Project: Under what circumstances will employees leave a company? What factors predict this?
 
 ```{r}
+library(readr)
+HR_comma_sep <- read_csv("C:/Users/Aaron/Downloads/HR_comma_sep.csv")
 HR_data <- data.frame(HR_comma_sep)
 unique(HR_data$sales)
 unique(HR_data$salary)
@@ -48,11 +50,50 @@ glm.mod <- glm(left ~. + poly(satisfaction_level, 5) + poly(average_montly_hours
 summary(glm.mod)
 ```
 
+#Some More Variables
 ```{r}
-satisfaction.squared <- (HR_data$satisfaction_level)^2
-satisfaction.cubed <- (HR_data$satisfaction_level)^3
-satisfaction.4 <- (HR_data$satisfaction_level)^4
-HR_data <- data.frame(HR_data, satisfaction.squared)
-View(HR_data)
+library(dummies)
+satisfaction.squared <- HR_data$satisfaction_level^2
+satisfaction.cubed <- HR_data$satisfaction_level^3
+satisfaction.4 <- HR_data$satisfaction_level^4
+satisfaction.5 <- HR_data$satisfaction_level^5
+avg_hours.squared <- HR_data$average_montly_hours^2
+avg_hours.cubed <- HR_data$average_montly_hours^3
+avg_hours.4 <- HR_data$average_montly_hours^4
+avg_hours.5 <- HR_data$average_montly_hours^5
+time_spent.squared <- HR_data$time_spend_company^2
+time_spent.cubed <- HR_data$time_spend_company^3
+time_spent.4 <- HR_data$time_spend_company^4
+time_spent.5 <- HR_data$time_spend_company^5
+project_hours.int <- HR_data$number_project*HR_data$average_montly_hours
+satisfaction_time_spent.int <- HR_data$satisfaction_level*HR_data$time_spend_company
+HR_data <- data.frame(HR_data, satisfaction.squared, satisfaction.cubed, satisfaction.4, satisfaction.5,
+                      avg_hours.squared, avg_hours.cubed, avg_hours.4, avg_hours.5, time_spent.squared,
+                      time_spent.squared, time_spent.4, time_spent.5, project_hours.int,
+                      satisfaction_time_spent.int)
+HR_data <- dummy.data.frame(HR_data)
+```
+Now that we have added some more predictors to our dataset, let's perform best subset selection to help us find the best model for logistic regression.
+
+#Setting Up the Data for Best Subset Selection
+```{r}
+#Prepare the data.
+HR_data_for_best_logistic <- withing(HR_data, {
+ satisfaction_level <- NULL
+ last_evaluation <- NULL
+ number_project <- NULL
+ average_montly_hours <- NULL
+ time_spend_company <- NULL
+ Work_accident <- NULL
+ y <- left
+ left <- NULL
+ promotion_last_5years <- NULL
+})
+```
+
+
+```{r}
+library(bestglm)
+bestglm.mod <- bestglm(HR_data)
 ```
 
