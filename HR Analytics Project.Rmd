@@ -2,7 +2,7 @@
 
 ```{r}
 library(readr)
-HR_comma_sep <- read_csv("C:/Users/Aaron/Downloads/HR_comma_sep.csv")
+HR_comma_sep <- read_csv("HR_comma_sep.csv")
 HR_data <- data.frame(HR_comma_sep)
 unique(HR_data$sales)
 unique(HR_data$salary)
@@ -77,8 +77,9 @@ Now that we have added some more predictors to our dataset, let's perform best s
 
 #Setting Up the Data for Best Subset Selection
 ```{r}
+library(bestglm)
 #Prepare the data.
-HR_data_for_best_logistic <- withing(HR_data, {
+HR_data_for_best_logistic <- within(HR_data, {
  satisfaction_level <- NULL
  last_evaluation <- NULL
  number_project <- NULL
@@ -88,12 +89,47 @@ HR_data_for_best_logistic <- withing(HR_data, {
  y <- left
  left <- NULL
  promotion_last_5years <- NULL
+ salesaccounting <- NULL
+ saleshr <- NULL
+ salesIT <- NULL
+ salesmanagement <- NULL
+ salesmarketing <- NULL
+ salesRanD <- NULL
+ salessales <- NULL
+ salessupport <- NULL
+ salestechnical <- NULL
+ salaryhigh <- NULL
+ salarymedium <- NULL
+ salarylow <- NULL
+ satisfaction.squared <- NULL
+ satisfaction.cubed <- NULL
+ satisfaction.4 <- NULL
+ satisfaction.5 <- NULL
+ avg_hours.squared <- NULL
+ avg_hours.cubed <- NULL
+ avg_hours.4 <- NULL
+ avg_hours.5 <- NULL
+ time_spent.squared <- NULL
+ time_spent.cubed <- NULL
+ time_spent.4 <- NULL
+ time_spent.5 <- NULL
+ project_hours.int <- NULL
+ satisfaction_time_spent.int <- NULL
 })
-```
 
+vars.reordered <- c("satisfaction_level", "last_evaluation", "number_project", "average_montly_hours",
+                                                          "time_spend_company", "Work_accident", "promotion_last_5years", "salesaccounting", "saleshr",
+                                                          "salesIT", "salesmanagement", "salesmarketing", "salesRand", "salessales", "salessupport",
+                                                          "salestechnical", "salaryhigh", "salarymedium", "salarylow", "satisfaction.squared",
+                                                          "satisfaction.cubed", "satsifaction.4", "satisfaction.5", "avg_hours.squared", "avg_hours.cubed",
+                                                          "avg_hours.4", "avg_hours.5", "time_spent.squared", "time_spent.cubed", "time_spent.4",
+                                                          "time_spent.5", "project_hours.int", "satisfaction_time_spent.int", "y")
 
-```{r}
-library(bestglm)
-bestglm.mod <- bestglm(HR_data)
+#Re-Order Variables:
+
+HR_data_for_best_logistic <- HR_data_for_best_logistic[,vars.reordered]
+
+#Perform the subset selection
+best.glm <- bestglm(Xy = HR_data_for_best_logistic, IC = "AIC", method = "exhaustive")
 ```
 
