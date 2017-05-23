@@ -43,21 +43,6 @@ correlations
 ```
 
 
-#Training and Testing Data
-```{r}
-library(bestglm)
-glm.mod <- glm(left ~. + poly(satisfaction_level, 5) + poly(average_montly_hours, 5) + poly(number_project, 5) + poly(time_spend_company, 5) + number_project*average_montly_hours + time_spend_company*satisfaction_level,family = "binomial", data = HR_data)
-summary(glm.mod)
-glm.mod2 <- glm(left ~.^2, family = "binomial", data = HR_data)
-summary(glm.mod2)
-```
-```{r}
-glm.mod.pred <- predict(glm.mod, HR_data, type = "response")
-glm.mod.pred2 <- predict(glm.mod2, HR_data, type = "response")
-table(HR_data$left, glm.mod.pred > 0.5)
-table(HR_data$left, glm.mod.pred2 > 0.5)
-```
-
 
 #Some More Variables
 ```{r}
@@ -84,8 +69,65 @@ HR_data <- dummy.data.frame(HR_data)
 ```
 Now that we have added some more predictors to our dataset, let's perform best subset selection to help us find the best model for logistic regression.
 
+```{r}
+glm.mod <- glm(left ~.,family = "binomial", data = HR_data)
+summary(glm.mod)
+```
+```{r}
+glm.mod.pred <- predict(glm.mod, HR_data, type = "response")
+table(HR_data$left, glm.mod.pred > 0.5)
+```
+
 #Setting Up the Data for Best Subset Selection
 ```{r}
-drop1(glm.mod2, test = "Chisq")
+step.mod <- step(glm.mod)
+summary(step.mod)
+```
+```{r}
+step.formula <- left ~ satisfaction_level + last_evaluation + number_project + 
+    average_montly_hours + time_spend_company + Work_accident + 
+    promotion_last_5years + salesIT + salesmarketing + salesproduct_mng + 
+    salesRandD + salessales + salaryhigh + salarylow + satisfaction.squared + 
+    satisfaction.cubed + satisfaction.4 + satisfaction.5 + avg_hours.squared + 
+    avg_hours.cubed + avg_hours.4 + avg_hours.5 + time_spent.squared + 
+    time_spent.4 + time_spent.5 + project_hours.int + satisfaction_time_spent.int
+```
+
+#Cross Validation
+```{r}
+library(boot)
+
+cost <- function(left, pi = 0) mean(abs(left - pi) > 0.5)
+#Randomly shuffle the data
+HR_data <- HR_data[sample(nrow(HR_data)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(HR_data)),breaks=10,labels=FALSE)
+
+specificity.list <- list()
+sensitivity.list <- list()
+misclassifcation.rate.list <- list()
+#Perform 10 fold cross validation
+for(i in 1:10){
+    #Segement your data by fold using the which() function 
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData <- HR_data[testIndexes, ]
+    trainData <- HR_data[-testIndexes, ]
+    glm.mod <- glm(step.formula, family = "binomial", data = trainData)
+    glm.mod.test <- predict(glm.mod, newdata = testData, type = "response")
+    cv.error10 <- cv.glm(testData, glm.mod, cost, K = 10)$delta
+    confusion.matrix <- table(testData$left, glm.mod.test > 0.6)
+    misclassifcation.rate <- 1 - sum(diag(confusion.matrix))/sum(confusion.matrix)
+    confusion.matrix <- as.array(confusion.matrix)
+    specificity <- 1 - confusion.matrix[1,2]/rowSums(confusion.matrix)[1]
+    sensitivity <- 1 - confusion.matrix[2,1]/rowSums(confusion.matrix)[2]
+    specificity.list[i] <- specificity
+    sensitivity.list[i] <- sensitivity
+    misclassifcation.rate.list[i] <- misclassifcation.rate
+}
+cv.error10
+print(mean(as.numeric(misclassifcation.rate.list)))
+print(mean(as.numeric(specificity.list)))
+print(mean(as.numeric(sensitivity.list)))
 ```
 
