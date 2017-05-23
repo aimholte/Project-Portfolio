@@ -48,7 +48,16 @@ correlations
 library(bestglm)
 glm.mod <- glm(left ~. + poly(satisfaction_level, 5) + poly(average_montly_hours, 5) + poly(number_project, 5) + poly(time_spend_company, 5) + number_project*average_montly_hours + time_spend_company*satisfaction_level,family = "binomial", data = HR_data)
 summary(glm.mod)
+glm.mod2 <- glm(left ~.^2, family = "binomial", data = HR_data)
+summary(glm.mod2)
 ```
+```{r}
+glm.mod.pred <- predict(glm.mod, HR_data, type = "response")
+glm.mod.pred2 <- predict(glm.mod2, HR_data, type = "response")
+table(HR_data$left, glm.mod.pred > 0.5)
+table(HR_data$left, glm.mod.pred2 > 0.5)
+```
+
 
 #Some More Variables
 ```{r}
@@ -77,59 +86,6 @@ Now that we have added some more predictors to our dataset, let's perform best s
 
 #Setting Up the Data for Best Subset Selection
 ```{r}
-library(bestglm)
-#Prepare the data.
-HR_data_for_best_logistic <- within(HR_data, {
- satisfaction_level <- NULL
- last_evaluation <- NULL
- number_project <- NULL
- average_montly_hours <- NULL
- time_spend_company <- NULL
- Work_accident <- NULL
- y <- left
- left <- NULL
- promotion_last_5years <- NULL
- salesaccounting <- NULL
- saleshr <- NULL
- salesIT <- NULL
- salesmanagement <- NULL
- salesmarketing <- NULL
- salesRanD <- NULL
- salessales <- NULL
- salessupport <- NULL
- salestechnical <- NULL
- salaryhigh <- NULL
- salarymedium <- NULL
- salarylow <- NULL
- satisfaction.squared <- NULL
- satisfaction.cubed <- NULL
- satisfaction.4 <- NULL
- satisfaction.5 <- NULL
- avg_hours.squared <- NULL
- avg_hours.cubed <- NULL
- avg_hours.4 <- NULL
- avg_hours.5 <- NULL
- time_spent.squared <- NULL
- time_spent.cubed <- NULL
- time_spent.4 <- NULL
- time_spent.5 <- NULL
- project_hours.int <- NULL
- satisfaction_time_spent.int <- NULL
-})
-
-vars.reordered <- c("satisfaction_level", "last_evaluation", "number_project", "average_montly_hours",
-                                                          "time_spend_company", "Work_accident", "promotion_last_5years", "salesaccounting", "saleshr",
-                                                          "salesIT", "salesmanagement", "salesmarketing", "salesRand", "salessales", "salessupport",
-                                                          "salestechnical", "salaryhigh", "salarymedium", "salarylow", "satisfaction.squared",
-                                                          "satisfaction.cubed", "satsifaction.4", "satisfaction.5", "avg_hours.squared", "avg_hours.cubed",
-                                                          "avg_hours.4", "avg_hours.5", "time_spent.squared", "time_spent.cubed", "time_spent.4",
-                                                          "time_spent.5", "project_hours.int", "satisfaction_time_spent.int", "y")
-
-#Re-Order Variables:
-
-HR_data_for_best_logistic <- HR_data_for_best_logistic[,vars.reordered]
-
-#Perform the subset selection
-best.glm <- bestglm(Xy = HR_data_for_best_logistic, IC = "AIC", method = "exhaustive")
+drop1(glm.mod2, test = "Chisq")
 ```
 
