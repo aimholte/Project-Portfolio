@@ -132,10 +132,15 @@ print(mean(as.numeric(specificity.list)))
 print(mean(as.numeric(sensitivity.list)))
 ```
 ```{r}
-library(tree)
-tree.class <- tree(left ~ ., method = "class", data = HR_data)
-summary(tree.class)
-plot(tree.class)
-text(tree.class)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+tree.class <- rpart(left ~ ., method = "class", data = HR_data)
+rpart.plot(tree.class)
+printcp(tree.class)
+plotcp(tree.class)
+table(HR_data$left, tree.class$y) #Looks like overfitting.
+pruned.tree <- prune(tree.class, cp = tree.class$cptable[which.min(tree.class$cptable[,"xerror"]),"CP"])
+rpart.plot(pruned.tree)
 ```
 
