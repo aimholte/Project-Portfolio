@@ -8,32 +8,52 @@ unique(HR_data$sales)
 unique(HR_data$salary)
 ```
 ```{r}
-hist(HR_data$satisfaction_level)
-hist(HR_data$average_montly_hours)
-hist(HR_data$time_spend_company)
+hist(HR_data$satisfaction_level, main = "Distribution of Satisfaction Level at Company")
+hist(HR_data$average_montly_hours, main = "Distribution of Average Montly Hours")
+hist(HR_data$time_spend_company, main = "Distirbution of Time Spent at Company")
 ```
 ```{r}
-plot(sample(HR_data$average_montly_hours, 1000, replace = TRUE),
-     sample(HR_data$satisfaction_level, 1000, replace = TRUE))
-plot(HR_data$time_spend_company, HR_data$average_montly_hours)
-boxplots <- list(boxplot(HR_data$satisfaction_level ~ HR_data$left),
-                 boxplot(HR_data$average_montly_hours ~ HR_data$left),
-                 boxplot(HR_data$last_evaluation ~ HR_data$left), 
-                 boxplot(HR_data$time_spend_company ~ HR_data$left),
-                 boxplot(HR_data$number_project ~ HR_data$left))
-boxplots
+par(mfrow = c(1, 2))
+boxplot(HR_data$satisfaction_level ~ HR_data$left,
+        main = "Employee's Satisfaction Level")
+boxplot(HR_data$average_montly_hours ~ HR_data$left,
+        main = "Hours Worked & Employees Leaving")
+par(mfrow = c(1, 2))
+boxplot(HR_data$last_evaluation ~ HR_data$left, main = "Time Since Last Evaluation")
+boxplot(HR_data$time_spend_company ~ HR_data$left, main = "Time Spent at Company")
+par(mfrow = c(1, 2))
+boxplot(HR_data$number_project ~ HR_data$left, main = "More Projects, More Leaving?")
+boxplot(HR_comma_sep$number_project ~ HR_comma_sep$salary, main = "Number of Projects and Salary")
 ```
 
 ```{r}
 library(ggplot2)
-ggplots <- list(qplot(time_spend_company, satisfaction_level, data = HR_data, color = left, size = salary),
-                qplot(average_montly_hours, satisfaction_level, data = HR_data, color = left),
-                qplot(number_project, average_montly_hours, data = HR_data, color = left),
-                qplot(time_spend_company, satisfaction_level, data = HR_data, color = sales),
-                 qplot(time_spend_company, satisfaction_level, data = HR_data,
-                       color = salary), qplot(number_project, average_montly_hours,
-                                              data = HR_data, color = salary))
-print(ggplots)
+library(gridExtra)
+attach(HR_data)
+attach(HR_comma_sep)
+par(mfrow = c(3, 2))
+qp.1 <- qplot(time_spend_company, satisfaction_level, data = HR_data, color = left)
+qp.2 <- qplot(average_montly_hours, satisfaction_level, data = HR_data, color = left)
+qp.3 <- qplot(number_project, average_montly_hours, data = HR_data, color = left)
+qp.4 <- qplot(time_spend_company, satisfaction_level, data = HR_data, color = sales)
+qp.5 <- qplot(time_spend_company, satisfaction_level, data = HR_data,
+                       color = salary)
+qp.5 <- qplot(number_project, average_montly_hours, data = HR_data, color = salary)
+
+gg.1 <- ggplot(HR_comma_sep, aes(average_montly_hours, satisfaction_level)) + geom_point(aes(colour = left)) + 
+  facet_wrap(~ salary, ncol = 3)
+gg.2 <- ggplot(HR_comma_sep, aes(sales, average_montly_hours)) + geom_boxplot() +
+  facet_wrap(~ left, ncol = 1)
+gg.3 <- ggplot(HR_comma_sep, aes(salary, satisfaction_level)) + geom_boxplot() +
+  facet_wrap(~ left, ncol = 1)
+gg.4 <- ggplot(HR_comma_sep, aes(x = salary, y = satisfaction_level, fill = left)) +
+  geom_bar(stat = "identity", position = "dodge")
+qp.2
+grid.arrange(qp.1, qp.4)
+grid.arrange(qp.3, qp.5)
+grid.arrange(gg.1, gg.4)
+gg.2
+gg.3
 ```
 
 ```{r}
@@ -126,7 +146,9 @@ for(i in 1:10){
     sensitivity.list[i] <- sensitivity
     misclassifcation.rate.list[i] <- misclassifcation.rate
 }
-cv.error10
+```
+
+```{r}
 print(mean(as.numeric(misclassifcation.rate.list)))
 print(mean(as.numeric(specificity.list)))
 print(mean(as.numeric(sensitivity.list)))
