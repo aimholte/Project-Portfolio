@@ -1,0 +1,215 @@
+---
+title: "Predicting House Prices in the King County Housing Market"
+author: "A.J. Imholte"
+date: "July 1, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(readr)
+kc_house_data <- read_csv("C:/Users/aimho/OneDrive/Data Science Projects/kc_house_data.csv")
+```
+
+```{r}
+kc_house_data$highprice <- I(kc_house_data$price >= 1000000)
+kc_house_data$highprice[kc_house_data$highprice == TRUE] <- as.numeric(1)
+kc_house_data$highprice[kc_house_data$highprice == FALSE] <- as.numeric(0)
+unique(kc_house_data$highprice)
+```
+
+```{r}
+library(ggplot2)
+plot1 <- ggplot(kc_house_data, aes(sqft_living, price)) +
+  geom_point(aes(colour = waterfront))
+plot2 <- ggplot(kc_house_data, aes(bathrooms, bedrooms)) +
+  geom_point(aes(colour = price > 1000000))
+plot3 <- ggplot(kc_house_data, aes(grade, price)) + 
+  geom_jitter(aes(colour = view))
+plot4 <- ggplot(kc_house_data, aes(floors, price)) + 
+  geom_jitter(aes(colour = yr_built))
+plot5 <- ggplot(kc_house_data, aes(zipcode, price)) +
+  geom_jitter(aes(colour = yr_built))
+plot6 <- ggplot(kc_house_data, aes(sqft_living, price)) +
+  geom_point(aes(colour = price > 1000000)) + 
+  facet_wrap(~ condition, ncol = 2)
+plot7 <- ggplot(kc_house_data, aes(sqft_basement, sqft_above)) +
+  geom_point(aes(colour = price > 1000000))
+plot8 <- ggplot(kc_house_data, aes(lat, long)) + 
+  geom_point(aes(colour = price > 1000000))
+plot9 <- ggplot(kc_house_data, aes(lat, long)) + 
+  geom_point(aes(colour = waterfront))
+```
+
+```{r}
+attach(kc_house_data)
+hist(price, main = "Distribution of House Prices in King County, 2014-2015")
+hist(sqft_lot, main = "Distribution of Lot Size")
+hist(yr_built, main = "Distribution of the Years Houses Were Built")
+boxplot(price ~ waterfront)
+boxplot(price ~ view)
+```
+
+
+```{r}
+plot1
+plot2
+plot3
+plot4
+plot5
+plot6
+plot7
+plot8
+plot9
+```
+```{r}
+summary(kc_house_data)
+```
+#Model Building
+```{r}
+library(leaps)
+regfit.full <- regsubsets(price ~ . - id - date, kc_house_data, nvmax = 100)
+summary(regfit.full)
+reg.summary <- summary(regfit.full)
+```
+```{r}
+par(mfrow = c(2, 2))
+plot(reg.summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(reg.summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+plot(reg.summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+```
+```{r}
+plot(regfit.full, scale = "r2")
+plot(regfit.full, scale = "adjr2")
+plot(regfit.full, scale = "Cp")
+plot(regfit.full, scale = "bic")
+coef(regfit.full, 15)
+```
+
+```{r}
+regfit.fwd <- regsubsets(price ~. - date - id, data = kc_house_data, nvmax = 100, method = "forward")
+regfit.bwd <- regsubsets(price ~. - date - id, data = kc_house_data, nvmax = 100, method = "backward")
+summary(regfit.fwd)
+summary(regfit.bwd)
+```
+```{r}
+set.seed(1)
+train <- sample(c(TRUE, FALSE), nrow(kc_house_data), rep = TRUE)
+test <- (!train)
+```
+```{r}
+regfit.best <- regsubsets(price ~. - date - id, data = kc_house_data[train,], nvmax = 100)
+test.matrix <- model.matrix(price ~. - date - id, data = kc_house_data[test,])
+val.errors <- rep(NA,17)
+for(i in 1:17){
+  coefi <- coef(regfit.best, id = i)
+  pred <- test.matrix[,names(coefi)]%*%coefi
+  val.errors[i] <- mean((kc_house_data$price[test]-pred)^2)
+}
+val.errors
+which.min(val.errors) #the model with the lowest MSE is the model with 15 terms.
+coef(regfit.best, id = 15)
+```
+```{r}
+regfit.best <- regsubsets(price ~ . - id - date, data = kc_house_data, nvmax = 17)
+coef(regfit.best, 15)
+```
+```{r}
+predict.regsubsets <- function(object, newdata, id,...){
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id = id)
+  xvars = names(coefi)
+  mat[,xvars]%*%coefi
+}
+```
+
+
+```{r}
+k <- 10
+set.seed(1)
+folds <- sample(1:k, nrow(kc_house_data), replace = TRUE)
+cv.errors <- matrix(NA,k,17, dimnames = list(NULL, paste(1:17)))
+for(j in 1:k){
+  best.fit <- regsubsets(price ~ . - id - date, data = kc_house_data[folds!=j, ], nvmax = 17)
+  for(i in 1:17){
+    pred <- predict(best.fit, kc_house_data[folds==j, ], id = i)
+    cv.errors[j,i] <- mean( (kc_house_data$price[folds==j]-pred)^2)
+  }
+}
+```
+```{r}
+mean.cv.errors <- apply(cv.errors, 2, mean)
+mean.cv.errors
+which.min(mean.cv.errors)
+par(mfrow = c(1, 1))
+plot(mean.cv.errors, type = "b")
+```
+```{r}
+reg.best <- regsubsets(price ~ . - id - date, data = kc_house_data, nvmax = 17)
+coef(reg.best, 15)
+```
+```{r}
+set.seed(10)
+data <- kc_house_data[sample(nrow(kc_house_data)-1),]
+train <- 1:(nrow(data)/2)
+training <- data[train, ]
+testing <- data[(-train), ]
+lm.mod <- lm(price ~ view + long + bedrooms + condition + sqft_living15 + bathrooms + grade + sqft_lot15 + sqft_living + sqft_above + sqft_basement + floors + yr_renovated + waterfront + lat, data = training)
+lm.mod.pred <- predict(lm.mod, testing)
+lm.2 <- lm(price ~ poly(view,2) + poly(long,2) + poly(bedrooms, 2) + poly(condition, 2) + poly(sqft_living15, 2) + poly(bathrooms, 2) + poly(grade, 2) + poly(sqft_lot15, 2) + poly(sqft_living, 2) + poly(sqft_above, 2) + poly(sqft_basement, 2) + poly(floors, 2) + poly(yr_renovated, 2) + poly(waterfront, 1) + poly(lat, 2), data = training)
+lm.2.pred <- predict(lm.2, testing)
+lm.3 <- lm(price ~ poly(view,3) + poly(long,3) + poly(bedrooms,3) + poly(condition,3) + poly(sqft_living15,3) +
+             poly(bathrooms,3) + poly(grade,3) + poly(sqft_lot15,3) + poly(sqft_living,3) + poly(sqft_above,3) +
+                                        poly(sqft_basement,3) + poly(floors,3) + poly(yr_renovated,3) +
+                                        waterfront + poly(lat, 3), data = training)
+lm.3.pred <- predict(lm.3, testing)
+mse <- mean(testing$price - lm.mod.pred)^2
+mse.2 <- mean(testing$price - lm.2.pred)^2
+mse.3 <- mean(testing$price - lm.3.pred)^2
+mse.3
+mse.2
+mse
+```
+```{r}
+set.seed(30)
+library(boot)
+mse_price <- function(data = kc_house_data, folds = 5){
+  mse_list <- seq(0, folds)
+  for(i in 1:folds){
+    fold <- cut(seq(1,nrow(data)),breaks=folds,labels=FALSE)
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData <- data[testIndexes, ]
+    trainData <- data[-testIndexes, ]
+    lm.fit <- lm(price ~ view + long + bedrooms + condition + sqft_living15 + bathrooms + grade + sqft_lot15 + sqft_living + sqft_above + sqft_basement + floors + yr_renovated + waterfront + lat, data = trainData)
+    lm.pred <- predict(lm.fit, testData)
+    mse <- mean(testData$price - lm.pred)^2
+    mse_list[i] <- mse
+  }
+  return(mean(mse_list))
+}
+```
+
+```{r}
+#folds <- 10
+#mse_list <- list()
+#for(i in 1:folds){
+  #fold <- cut(seq(1,nrow(kc_house_data)),breaks=folds,labels=FALSE)
+  #testIndexes <- which(folds==i,arr.ind=TRUE)
+  #testData <- kc_house_data[testIndexes, ]
+  #trainData <- kc_house_data[-testIndexes, ]
+  #lm.fit <- lm(price ~ view + long + bedrooms + condition + sqft_living15 + bathrooms + grade + sqft_lot15 +
+                 #sqft_living + sqft_above + sqft_basement + floors + yr_renovated + waterfront + lat,
+               #na.action = na.omit, data = trainData)
+  #lm.pred <- predict(lm.fit, testData)
+  #mse <- mean(testData$price - lm.pred)^2
+  #mse_list[i] <- mse
+  #}
+#return(mean(mse_list))
+```
+
+```{r}
+#boot(kc_house_data, mse_price, R = 100)
+```
+
